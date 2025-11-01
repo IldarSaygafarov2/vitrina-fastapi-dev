@@ -1,4 +1,3 @@
-from backend.app.config import load_config
-
+from config.loader import load_config
 
 config = load_config()
