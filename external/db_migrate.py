@@ -31,12 +31,12 @@ def clean_json(json_path: str, *fields):
     content = read_json(json_path)
     categories = read_json("external/categories.json")
     districts = read_json("external/districts.json")
-    users = read_json("external/users.json")
-    gallery = read_json("external/api_advertisementgallery.json")
+    # users = read_json("external/users.json")
+    # gallery = read_json("external/api_advertisementgallery.json")
 
     categories = {i["id"]: i["name"] for i in categories}
     districts = {i["id"]: i["name"] for i in districts}
-    users = {i["id"]: i["tg_username"] for i in users}
+    # users = {i["id"]: i["tg_username"] for i in users}
     # gallery = {i["advertisement_id"]: i["photo"] for i in gallery}
     imgs = {}
     for item in content:
@@ -50,14 +50,14 @@ def clean_json(json_path: str, *fields):
                 copied_item[key] = categories[value]
             if key == "district_id":
                 copied_item[key] = districts[value]
-            if key == "user_id":
-                copied_item[key] = users.get(value)
-
-            if key == "id":
-                imgs[item["name"]] = []
-                for img in gallery:
-                    if value == img["advertisement_id"]:
-                        imgs[item["name"]].append(img)
+            # if key == "user_id":
+            #     copied_item[key] = users.get(value)
+            #
+            # if key == "id":
+            #     imgs[item["name"]] = []
+            #     for img in gallery:
+            #         if value == img["advertisement_id"]:
+            #             imgs[item["name"]].append(img)
 
         result.append(copied_item)
 
