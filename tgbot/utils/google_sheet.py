@@ -55,25 +55,26 @@ def get_sheet_values(spread: Spreadsheet, worksheet_name: str):
     return worksheet.get_all_records()
 
 
-def main() -> None:
-    client = client_init_json()
-    # buy_spread = get_table_by_url(client, config.report_sheet.buy_report_sheet_link)
-    # rent_spread = get_table_by_url(client, config.report_sheet.rent_report_sheet_link)
-    # create_worksheets(buy_spread, list(MONTHS_DICT.values()))
-    # create_worksheets(rent_spread, list(MONTHS_DICT.values()))
-    # add_row_titles(buy_spread, list(ROW_FIELDS.values()))
-    # add_row_titles(rent_spread, list(ROW_FIELDS.values()))
-    # print(buy_spread, rent_spread)
-
-    # full_rent_report_spread = get_table_by_url(client, config.report_sheet.full_rent_report_sheet_link)
-    buy_full_report_spread = get_table_by_url(client, config.report_sheet.full_buy_report_sheet_link)
-    # create_worksheets(full_rent_report_spread, list(MONTHS_DICT.values()))
-    create_worksheets(buy_full_report_spread, list(MONTHS_DICT.values()))
-    # add_row_titles(full_rent_report_spread, list(ROW_FIELDS.values()))
-    add_row_titles(buy_full_report_spread, list(ROW_FIELDS.values()))
-    print('done')
-
-
-if __name__ == '__main__':
-    main()
+# def main() -> None:
+#     client = client_init_json()
+#     buy_spread = get_table_by_url(client, config.report_sheet.buy_report_sheet_link)
+#     rent_spread = get_table_by_url(client, config.report_sheet.rent_report_sheet_link)
+#     print(buy_spread, rent_spread)
+#     create_worksheets(buy_spread, list(MONTHS_DICT.values()))
+#     create_worksheets(rent_spread, list(MONTHS_DICT.values()))
+#     add_row_titles(buy_spread, list(ROW_FIELDS.values()))
+#     add_row_titles(rent_spread, list(ROW_FIELDS.values()))
+#
+#
+#     # full_rent_report_spread = get_table_by_url(client, config.report_sheet.full_rent_report_sheet_link)
+#     # buy_full_report_spread = get_table_by_url(client, config.report_sheet.full_buy_report_sheet_link)
+#     # # create_worksheets(full_rent_report_spread, list(MONTHS_DICT.values()))
+#     # create_worksheets(buy_full_report_spread, list(MONTHS_DICT.values()))
+#     # # add_row_titles(full_rent_report_spread, list(ROW_FIELDS.values()))
+#     # add_row_titles(buy_full_report_spread, list(ROW_FIELDS.values()))
+#     print('done')
+#
+#
+# if __name__ == '__main__':
+#     main()
 
