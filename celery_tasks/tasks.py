@@ -1,9 +1,7 @@
 import time
 
 from backend.app.config import config
-from celery_tasks.app import celery_app
-from infrastructure.database.repo.requests import RequestsRepo
-from infrastructure.database.setup import create_engine, create_session_pool
+from celery_tasks.app import celery_app_dev
 from tgbot.keyboards.user.inline import is_advertisement_actual_kb
 from tgbot.misc.constants import MONTHS_DICT
 from tgbot.utils.google_sheet import (
@@ -12,10 +10,9 @@ from tgbot.utils.google_sheet import (
     fill_row_with_data,
 )
 from tgbot.utils.helpers import deserialize_media_group
-from tgbot.utils.helpers import send_message_to_rent_topic
 
 
-@celery_app.task
+@celery_app_dev.task
 def fill_report(month: int, data: dict, operation_type: str):
     client = client_init_json()
 
@@ -29,7 +26,7 @@ def fill_report(month: int, data: dict, operation_type: str):
     time.sleep(2)
 
 
-@celery_app.task
+@celery_app_dev.task
 def send_delayed_message(chat_id, media_group):
     from aiogram import Bot
     import asyncio
@@ -43,7 +40,7 @@ def send_delayed_message(chat_id, media_group):
     asyncio.run(send_media_group())
 
 
-@celery_app.task
+@celery_app_dev.task
 def remind_agent_to_update_advertisement(unique_id, agent_chat_id: int, advertisement_id: int):
     import asyncio
     from aiogram import Bot
@@ -61,7 +58,7 @@ def remind_agent_to_update_advertisement(unique_id, agent_chat_id: int, advertis
     asyncio.run(send_reminder())
 
 
-@celery_app.task
+@celery_app_dev.task
 def remind_agent_to_update_advertisement_extended(
         advertisement_unique_id,
         advertisement_id,
@@ -87,7 +84,7 @@ def remind_agent_to_update_advertisement_extended(
 
     asyncio.run(send_reminder())
 
-# @celery_app.task
+# @celery_app_dev.task
 # def send_message_by_queue(advertisement_id, price, media_group, operation_type, channel_name):
 #     import asyncio
 #     from aiogram import Bot

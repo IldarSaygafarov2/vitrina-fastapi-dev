@@ -331,9 +331,14 @@ async def process_moderation_confirm(
             time_to_send = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
             time_for_info = datetime.datetime.now() + datetime.timedelta(minutes=5)
 
-            await call.message.answer(f'Объявление в бот будет отправлено в {time_for_info}')
-            await call.bot.send_message(user.tg_chat_id,
-                                        f'Объявление будет отправлено в {time_for_info.strftime("%Y-%m-%d %H:M%:%S")}')
+            await call.message.answer(
+                f'Объявление в бот будет отправлено в {time_for_info.strftime("%Y-%m-%d %H:%M:%S")}'
+            )
+            await call.bot.send_message(
+                user.tg_chat_id,
+                f'Объявление будет отправлено в {time_for_info.strftime("%Y-%m-%d %H:%M:%S")}'
+            )
+
             send_delayed_message.apply_async(
                 args=[chat_id, serialize_media_group(media_group)],
                 eta=time_to_send,
