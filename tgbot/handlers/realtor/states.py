@@ -714,9 +714,9 @@ async def get_repair_type(
         owner_phone_number = state_data.get("owner_phone_number")
 
         if operation_type == 'rent':
-            time_to_remind = datetime.utcnow() + timedelta(days=config.reminder_config.rent_reminder_days)
+            time_to_remind = datetime.utcnow() + timedelta(minutes=config.reminder_config.rent_reminder_minutes)
         else:
-            time_to_remind = datetime.utcnow() + timedelta(days=config.reminder_config.buy_reminder_days)
+            time_to_remind = datetime.utcnow() + timedelta(minutes=config.reminder_config.buy_reminder_minutes)
 
         new_advertisement = await repo.advertisements.create_advertisement(
             unique_id=unique_id,

@@ -51,7 +51,7 @@ def remind_agent_to_update_advertisement(unique_id, agent_chat_id: int, advertis
     async def send_reminder():
         bot = Bot(token=config.tg_bot.token)
         msg = f"""
-Объявление: №{unique_id} является актуальным?
+Объявление: №{unique_id} актуально?
 """
         await bot.send_message(
             agent_chat_id, msg, parse_mode='HTML', reply_markup=is_advertisement_actual_kb(advertisement_id)
@@ -60,6 +60,32 @@ def remind_agent_to_update_advertisement(unique_id, agent_chat_id: int, advertis
 
     asyncio.run(send_reminder())
 
+
+@celery_app.task
+def remind_agent_to_update_advertisement_extended(
+        advertisement_unique_id,
+        advertisement_id,
+        agent_chat_id,
+        media_group
+):
+    import asyncio
+    from aiogram import Bot
+
+    async def send_reminder():
+        bot = Bot(token=config.tg_bot.token)
+        msg = f"""
+Объявление: №{advertisement_unique_id} актуально?
+"""
+
+        await bot.send_message(
+            chat_id=agent_chat_id,
+            text=msg,
+            reply_markup=is_advertisement_actual_kb(advertisement_id)
+        )
+        await bot.send_media_group(chat_id=agent_chat_id, media=media_group)
+        await bot.session.close()
+
+    asyncio.run(send_reminder())
 
 # @celery_app.task
 # def send_message_by_queue(advertisement_id, price, media_group, operation_type, channel_name):

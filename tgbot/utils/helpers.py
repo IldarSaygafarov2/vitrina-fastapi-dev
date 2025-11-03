@@ -100,6 +100,6 @@ async def download_advertisement_photo(bot: Bot, file_id: str, folder: Path):
 
 def get_reminder_time_by_operation_type(operation_type: str) -> datetime:
     if operation_type == 'Покупка':
-        return datetime.utcnow() + timedelta(days=config.reminder_config.buy_reminder_days)
-    return datetime.utcnow() + timedelta(days=config.reminder_config.rent_reminder_days)  # для аренды
+        return datetime.utcnow() + timedelta(minutes=config.reminder_config.buy_reminder_minutes)
+    return datetime.utcnow() + timedelta(minutes=config.reminder_config.rent_reminder_minutes)  # для аренды
 

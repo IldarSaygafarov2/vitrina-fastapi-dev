@@ -9,6 +9,7 @@ from tgbot.keyboards.admin.inline import advertisement_moderation_kb
 from tgbot.keyboards.user.inline import is_price_actual_kb, advertisement_actions_kb
 from tgbot.misc.user_states import AdvertisementRelevanceState
 from tgbot.templates.advertisement_creation import realtor_advertisement_completed_text
+from tgbot.templates.messages import rent_channel_advertisement_message
 from tgbot.utils.helpers import get_reminder_time_by_operation_type, filter_digits, get_media_group
 
 router = Router()
@@ -41,7 +42,7 @@ async def react_to_advertisement_price_actual(call: CallbackQuery, repo: Request
 # если тип операции объявления покупка то нужно отправить на модерацию руководителю
 # если аренда то сразу публиковать в канал повторно меняя дату проверку актуальности
 @router.callback_query(F.data.startswith("price_not_changed"))
-async def react_to_advertisement_price_not_actual(call: CallbackQuery, repo: RequestsRepo, state: FSMContext):
+async def react_to_advertisement_price_not_changed(call: CallbackQuery, repo: RequestsRepo, state: FSMContext):
     await call.answer()
 
     chat_id = call.message.chat.id
@@ -98,8 +99,10 @@ async def set_actual_price_for_advertisement(message: Message, repo: RequestsRep
     advertisement_photos = [i.tg_image_hash for i in advertisement_photos]
 
     # подготавливаем готовое сообщение объявления
-    advertisement_message = realtor_advertisement_completed_text(updated_advertisement, lang="uz")
-    media_group = get_media_group(advertisement_photos, advertisement_message)
+    # advertisement_message = realtor_advertisement_completed_text(updated_advertisement, lang="uz")
+
+    updated_advertisement_rent_message = rent_channel_advertisement_message(advertisement)
+    media_group = get_media_group(advertisement_photos, updated_advertisement_rent_message)
 
     reminder_time = get_reminder_time_by_operation_type(operation_type)
 
@@ -131,7 +134,7 @@ async def set_actual_price_for_advertisement(message: Message, repo: RequestsRep
 
 
 # TODO: если объявление не актуальное нужно отправить агенту клавиатуру для удаления данного объявление,
-# проверка отправляется руководителью данного агента для подтверждения удаления
+# проверка отправляется руководителю данного агента для подтверждения удаления
 @router.callback_query(F.data.startswith("not_actual"))
 async def react_to_advertisement_not_actual(call: CallbackQuery, repo: RequestsRepo, state: FSMContext):
     await call.answer()

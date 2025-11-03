@@ -11,6 +11,7 @@ from celery_tasks.tasks import (
     fill_report,
     send_delayed_message,
     remind_agent_to_update_advertisement,
+    remind_agent_to_update_advertisement_extended
     # send_message_by_queue
 )
 from config.loader import load_config
@@ -233,6 +234,13 @@ async def process_moderation_confirm(
     advertisement = await repo.advertisements.update_advertisement(
         advertisement_id=advertisement_id, is_moderated=True
     )
+
+    # если цена обновлена, то актуальную цену меняем на обновленную
+    if advertisement.updated_price:
+        advertisement = await repo.advertisements.update_advertisement(
+            advertisement_id,
+            price=advertisement.updated_price
+        )
     operation_type = advertisement.operation_type.value
 
     photos = [obj.tg_image_hash for obj in advertisement.images]
@@ -252,8 +260,6 @@ async def process_moderation_confirm(
 
     advertisement_data = AdvertisementForReportDTO.model_validate(advertisement, from_attributes=True).model_dump()
     advertisement_data = correct_advertisement_dict(advertisement_data)
-
-    # добавляем запись в таблицу очереди
 
     if operation_type == 'Покупка':
         await call.bot.send_media_group(
@@ -282,8 +288,6 @@ async def process_moderation_confirm(
     # else:
     #     time_to_send = not_sent_advertisements[-1].time_to_send + datetime.timedelta(minutes=5)
 
-
-
     # send_message_by_queue.apply_async(
     #     args=[advertisement.id, advertisement.price, serialize_media_group(media_group), operation_type, chat_id],
     #     eta=time_to_send,
@@ -298,12 +302,27 @@ async def process_moderation_confirm(
     #     f"Объявление добавлено в очередь, будет отправлено в {time_to_send.strftime('%Y-%m-%d %H:%M%:%S')}"
     # )
 
-
-    remind_agent_to_update_advertisement.apply_async(
-        args=[advertisement.unique_id, user.tg_chat_id, advertisement.id],
+    # data for remind
+    advertisement_message_for_remind = realtor_advertisement_completed_text(
+        advertisement,
+        lang='uz'
+    )
+    advertisement_media_group_for_remind = get_media_group(photos, advertisement_message_for_remind)
+    remind_agent_to_update_advertisement_extended.apply_async(
+        args=[
+            advertisement.unique_id,
+            advertisement.id,
+            user.tg_chat_id,
+            serialize_media_group(advertisement_media_group_for_remind)
+        ],
         eta=advertisement.reminder_time
     )
 
+    # old
+    # remind_agent_to_update_advertisement.apply_async(
+    #     args=[advertisement.unique_id, user.tg_chat_id, advertisement.id],
+    #     eta=advertisement.reminder_time
+    # )
 
     try:
         # Отправка в базовый канал
@@ -313,7 +332,8 @@ async def process_moderation_confirm(
             time_for_info = datetime.datetime.now() + datetime.timedelta(minutes=5)
 
             await call.message.answer(f'Объявление в бот будет отправлено в {time_for_info}')
-            await call.bot.send_message(user.tg_chat_id, f'Объявление будет отправлено в {time_for_info.strftime("%Y-%m-%d %H:M%:%S")}')
+            await call.bot.send_message(user.tg_chat_id,
+                                        f'Объявление будет отправлено в {time_for_info.strftime("%Y-%m-%d %H:M%:%S")}')
             send_delayed_message.apply_async(
                 args=[chat_id, serialize_media_group(media_group)],
                 eta=time_to_send,
@@ -334,6 +354,7 @@ async def process_moderation_confirm(
     )
 
     formatted_reminder_time = advertisement.reminder_time.strftime('%Y-%m-%d %H:%M%:%S')
+
     await call.message.answer(
         f"Уведомление для проверки актуальности отправится агенту в \n<b>{formatted_reminder_time}</b>"
     )
