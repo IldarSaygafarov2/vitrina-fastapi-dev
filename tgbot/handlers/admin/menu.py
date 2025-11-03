@@ -288,8 +288,8 @@ async def process_moderation_confirm(
     #     args=[advertisement.id, advertisement.price, serialize_media_group(media_group), operation_type, chat_id],
     #     eta=time_to_send,
     # )
-    #
-    # # отправляем сообщения руководителю и агенту
+
+    # отправляем сообщения руководителю и агенту
     # await call.message.answer(
     #     f"Объявление добавлено в очередь, будет отправлено в {time_to_send.strftime('%Y-%m-%d %H:%M%:%S')}"
     # )
@@ -299,10 +299,10 @@ async def process_moderation_confirm(
     # )
 
 
-    # remind_agent_to_update_advertisement.apply_async(
-    #     args=[advertisement.unique_id, user.tg_chat_id, advertisement.id],
-    #     eta=advertisement.reminder_time
-    # )
+    remind_agent_to_update_advertisement.apply_async(
+        args=[advertisement.unique_id, user.tg_chat_id, advertisement.id],
+        eta=advertisement.reminder_time
+    )
 
 
     try:
@@ -333,14 +333,14 @@ async def process_moderation_confirm(
         chat_id=user.tg_chat_id, text="Объявление прошло модерацию"
     )
 
-    # formatted_reminder_time = advertisement.reminder_time.strftime('%Y-%m-%d %H:%M%:%S')
-    # await call.message.answer(
-    #     f"Уведомление для проверки актуальности отправится агенту в \n<b>{formatted_reminder_time}</b>"
-    # )
-    # await call.bot.send_message(
-    #     user.tg_chat_id,
-    #     f'Уведомление для проверки актуальности будет отправлено в \n<b>{formatted_reminder_time}</b>'
-    # )
+    formatted_reminder_time = advertisement.reminder_time.strftime('%Y-%m-%d %H:%M%:%S')
+    await call.message.answer(
+        f"Уведомление для проверки актуальности отправится агенту в \n<b>{formatted_reminder_time}</b>"
+    )
+    await call.bot.send_message(
+        user.tg_chat_id,
+        f'Уведомление для проверки актуальности будет отправлено в \n<b>{formatted_reminder_time}</b>'
+    )
 
     return await call.message.delete()
 
