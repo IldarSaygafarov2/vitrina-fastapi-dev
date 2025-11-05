@@ -70,16 +70,14 @@ def remind_agent_to_update_advertisement_extended(
 
     async def send_reminder():
         bot = Bot(token=config.tg_bot.token)
-        msg = f"""
-Объявление: №{advertisement_unique_id} актуально?
-"""
-
+        await bot.send_message(agent_chat_id, "Проверка актуальности")
+        await bot.send_media_group(chat_id=agent_chat_id, media=media_group)
         await bot.send_message(
             chat_id=agent_chat_id,
-            text=msg,
+            text=f"Объявление: №{advertisement_unique_id} актуально?",
             reply_markup=is_advertisement_actual_kb(advertisement_id)
         )
-        await bot.send_media_group(chat_id=agent_chat_id, media=media_group)
+
         await bot.session.close()
 
     asyncio.run(send_reminder())

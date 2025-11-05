@@ -332,7 +332,7 @@ async def process_moderation_confirm(
             time_for_info = datetime.datetime.now() + datetime.timedelta(minutes=5)
 
             await call.message.answer(
-                f'Объявление в бот будет отправлено в {time_for_info.strftime("%Y-%m-%d %H:%M:%S")}'
+                f'Объявление будет отправлено в {time_for_info.strftime("%Y-%m-%d %H:%M:%S")}'
             )
             await call.bot.send_message(
                 user.tg_chat_id,
