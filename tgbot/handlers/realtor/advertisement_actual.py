@@ -1,16 +1,19 @@
+from datetime import timedelta
+
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from backend.app.config import config
-from celery_tasks.tasks import remind_agent_to_update_advertisement
+from celery_tasks.tasks import remind_agent_to_update_advertisement, remind_agent_to_update_advertisement_extended
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.keyboards.admin.inline import advertisement_moderation_kb
 from tgbot.keyboards.user.inline import is_price_actual_kb, advertisement_actions_kb
 from tgbot.misc.user_states import AdvertisementRelevanceState
 from tgbot.templates.advertisement_creation import realtor_advertisement_completed_text
 from tgbot.templates.messages import rent_channel_advertisement_message
-from tgbot.utils.helpers import get_reminder_time_by_operation_type, filter_digits, get_media_group
+from tgbot.utils.helpers import get_reminder_time_by_operation_type, filter_digits, get_media_group, \
+    serialize_media_group
 
 router = Router()
 
@@ -83,14 +86,23 @@ async def set_actual_price_for_advertisement(message: Message, repo: RequestsRep
     operation_type = advertisement.operation_type.value
 
     reminder_time = get_reminder_time_by_operation_type(operation_type)
-    formatted_reminder_time = reminder_time.strftime('%Y-%m-%d %H:%M%:%S')
+    formatted_reminder_time = (reminder_time + timedelta(hours=5)).strftime('%Y-%m-%d %H:%M:%S')
 
     new_price = filter_digits(message.text)
 
     # обновляем цену объявления
-    updated_advertisement = await repo.advertisements.update_advertisement(advertisement_id=advertisement_id,
-                                                                           updated_price=int(new_price),
-                                                                           reminder_time=reminder_time)
+    if operation_type == 'Аренда':
+        updated_advertisement = await repo.advertisements.update_advertisement(
+            advertisement_id=advertisement_id,
+            price=int(new_price),
+            reminder_time=reminder_time
+        )
+    else:
+        updated_advertisement = await repo.advertisements.update_advertisement(
+            advertisement_id=advertisement_id,
+            updated_price=int(new_price),
+            reminder_time=reminder_time
+        )
 
     print(f'new reminder time: {formatted_reminder_time} for {operation_type=}')
 
@@ -98,27 +110,31 @@ async def set_actual_price_for_advertisement(message: Message, repo: RequestsRep
     advertisement_photos = await repo.advertisement_images.get_advertisement_images(advertisement_id=advertisement_id)
     advertisement_photos = [i.tg_image_hash for i in advertisement_photos]
 
-    # подготавливаем готовое сообщение объявления
-    # advertisement_message = realtor_advertisement_completed_text(updated_advertisement, lang="uz")
 
-    updated_advertisement_rent_message = rent_channel_advertisement_message(advertisement)
-    media_group = get_media_group(advertisement_photos, updated_advertisement_rent_message)
 
-    reminder_time = get_reminder_time_by_operation_type(operation_type)
 
     if operation_type == 'Аренда':
+        updated_advertisement_rent_message = rent_channel_advertisement_message(updated_advertisement)
+        media_group = get_media_group(advertisement_photos, updated_advertisement_rent_message)
+
         # отправляем сообщение в канал по аренде
         await message.bot.send_media_group(config.tg_bot.rent_channel_name, media=media_group)
         await message.answer("Обновили цену и отправили в канал")
         await message.answer(
             f"Следующее уведомление для проверки актуальности будет отправлено в <b>{formatted_reminder_time}</b>"
         )
-        # TODO: изменить время актуальности данного объявления и добавить в очередь
-        remind_agent_to_update_advertisement.apply_async(
-            args=[updated_advertisement.unique_id, message.chat.id, updated_advertisement.id],
+
+        remind_agent_to_update_advertisement_extended.apply_async(
+            args=[
+                updated_advertisement.unique_id,
+                updated_advertisement.id,
+                message.chat.id,
+                serialize_media_group(media_group=media_group)
+            ],
             eta=reminder_time
         )
     elif operation_type == 'Покупка':
+        media_group = get_media_group(advertisement_photos, realtor_advertisement_completed_text(updated_advertisement))
         await message.answer("Объявление отправлено руководителю на проверку")
         agent_fullname = f"{user.first_name} {user.lastname}"
         # TODO:  отправить объявление на подтверждение руководителю группы

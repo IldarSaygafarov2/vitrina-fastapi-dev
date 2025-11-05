@@ -8,6 +8,7 @@ from .db_config import DbConfig
 from .google_sheet_config import GoogleSheetConfig, ReportSheetConfig
 from .tg_config import TgBot, TgSuperGroupConfig
 from .reminder_config import ReminderConfig
+from .redis_config import RedisConfig
 
 
 @dataclass
@@ -20,6 +21,7 @@ class Config:
     super_group: TgSuperGroupConfig
     report_sheet: ReportSheetConfig
     reminder_config: ReminderConfig
+    redis_config: RedisConfig
 
 
 def load_config(path: Optional[str] = None) -> "Config":
@@ -33,6 +35,7 @@ def load_config(path: Optional[str] = None) -> "Config":
     super_group_config = TgSuperGroupConfig.from_env(env)
     report_sheet = ReportSheetConfig.from_env(env)
     reminder_config = ReminderConfig.from_env(env)
+    redis_config = RedisConfig.from_env(env)
 
     api_prefix = ApiPrefix()
 
@@ -44,5 +47,6 @@ def load_config(path: Optional[str] = None) -> "Config":
         google_sheet=google_sheet,
         super_group=super_group_config,
         report_sheet=report_sheet,
-        reminder_config=reminder_config
+        reminder_config=reminder_config,
+        redis_config=redis_config
     )

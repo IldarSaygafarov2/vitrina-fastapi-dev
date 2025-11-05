@@ -1,9 +1,10 @@
 from celery import Celery
+from backend.app.config import config
 
 celery_app_dev = Celery(
     "dev_celery_tasks",
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/0",
+    broker=config.redis_config.broker_url,
+    backend=config.redis_config.backend_url,
 )
 
 celery_app_dev.conf.update(
