@@ -8,6 +8,7 @@ from aiogram import Bot
 from aiogram.types import InputMediaPhoto
 
 from backend.app.config import config
+from infrastructure.database.repo.requests import RequestsRepo
 
 
 def read_json(file_path: str):
@@ -103,3 +104,8 @@ def get_reminder_time_by_operation_type(operation_type: str) -> datetime:
         return datetime.utcnow() + timedelta(minutes=config.reminder_config.buy_reminder_minutes)
     return datetime.utcnow() + timedelta(minutes=config.reminder_config.rent_reminder_minutes)  # для аренды
 
+
+
+async def get_advertisement_photos(advertisement_id: int, repo: 'RequestsRepo'):
+    photos = await repo.advertisement_images.get_advertisement_images(advertisement_id=advertisement_id)
+    return [item.tg_image_hash for item in photos]

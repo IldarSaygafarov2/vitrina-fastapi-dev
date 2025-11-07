@@ -57,3 +57,7 @@ ID: {advertisement.unique_id}
 
 <a href='https://tr.ee/vitrina'>🔘НАЙТИ КВАРТИРУ🔘</a>
 """
+
+
+def advertisement_reminder_message(reminder_time):
+    return f"Уведомление для проверки актуальности данного объявления будет отправлено в <b>{reminder_time}</b>"
