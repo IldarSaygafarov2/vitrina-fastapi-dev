@@ -9,9 +9,7 @@ from aiogram.types import CallbackQuery, Message
 from backend.core.interfaces.advertisement import AdvertisementForReportDTO
 from celery_tasks.tasks import (
     fill_report,
-    send_delayed_message,
-    # remind_agent_to_update_advertisement,
-    # remind_agent_to_update_advertisement_extended
+    remind_agent_to_update_advertisement_extended,
     send_message_by_queue
 )
 from config.loader import load_config
@@ -34,7 +32,8 @@ from tgbot.misc.user_states import (
 from tgbot.templates.advertisement_creation import realtor_advertisement_completed_text
 from tgbot.templates.messages import (
     rent_channel_advertisement_message,
-    buy_channel_advertisement_message, advertisement_reminder_message,
+    buy_channel_advertisement_message,
+    advertisement_reminder_message,
 )
 from tgbot.templates.realtor_texts import get_realtor_info
 from tgbot.utils.helpers import get_media_group, send_message_to_rent_topic, correct_advertisement_dict, \
@@ -282,7 +281,6 @@ async def process_moderation_confirm(
 
     # получаем все не отправленные объявления из очереди
     not_sent_advertisements = await repo.advertisement_queue.get_all_not_sent_advertisements()
-    # not_sent_advertisements_ids = [item.advertisement_id for item in not_sent_advertisements]
 
     if not_sent_advertisements:  # если есть элементы в очереди то берем время последнего отправленного объявления
         time_to_send = not_sent_advertisements[-1].time_to_send + datetime.timedelta(minutes=5)
@@ -294,7 +292,6 @@ async def process_moderation_confirm(
         await repo.advertisement_queue.add_advertisement_to_queue(
             advertisement_id=advertisement.id, time_to_send=time_to_send
         )
-
 
 
     send_message_by_queue.apply_async(
@@ -321,72 +318,37 @@ async def process_moderation_confirm(
     )
 
     # data for remind
-    # advertisement_message_for_remind = realtor_advertisement_completed_text(
-    #     advertisement,
-    #     lang='uz'
-    # )
+    advertisement_message_for_remind = realtor_advertisement_completed_text(
+        advertisement,
+        lang='uz'
+    )
 
-    # advertisement_media_group_for_remind = get_media_group(photos, advertisement_message_for_remind)
-    # remind_agent_to_update_advertisement_extended.apply_async(
-    #     args=[
-    #         advertisement.unique_id,
-    #         advertisement.id,
-    #         user.tg_chat_id,
-    #         serialize_media_group(advertisement_media_group_for_remind)
-    #     ],
-    #     eta=advertisement.reminder_time
-    # )
-
-    # old
-    # remind_agent_to_update_advertisement.apply_async(
-    #     args=[advertisement.unique_id, user.tg_chat_id, advertisement.id],
-    #     eta=advertisement.reminder_time
-    # )
-
-    # try:
-    #     # Отправка в базовый канал
-    #     if operation_type == 'Покупка':
-    #         # отложенная отправка в основной канал покупки
-    #         time_to_send = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
-    #         time_for_info = datetime.datetime.now() + datetime.timedelta(minutes=5)
-    #
-    #         await call.message.answer(
-    #             f'Объявление будет отправлено в {time_for_info.strftime("%Y-%m-%d %H:%M:%S")}'
-    #         )
-    #         await call.bot.send_message(
-    #             user.tg_chat_id,
-    #             f'Объявление будет отправлено в {time_for_info.strftime("%Y-%m-%d %H:%M:%S")}'
-    #         )
-    #
-    #         send_delayed_message.apply_async(
-    #             args=[chat_id, serialize_media_group(media_group)],
-    #             eta=time_to_send,
-    #         )
-    #     elif operation_type == 'Аренда':
-    #         await call.bot.send_media_group(
-    #             chat_id=chat_id,
-    #             media=media_group,
-    #         )
-    #
-    # except Exception as e:
-    #     return await call.bot.send_message(chat_id=config.tg_bot.test_main_chat_id,
-    #                                        text=f'ошибка при отправке медиа группы\n{str(e)}')
+    advertisement_media_group_for_remind = get_media_group(photos, advertisement_message_for_remind)
+    remind_agent_to_update_advertisement_extended.apply_async(
+        args=[
+            advertisement.unique_id,
+            advertisement.id,
+            user.tg_chat_id,
+            serialize_media_group(advertisement_media_group_for_remind)
+        ],
+        eta=advertisement.reminder_time
+    )
 
     await call.message.edit_text("Спасибо! Объявление отправлено в канал")
     await call.bot.send_message(
-        chat_id=user.tg_chat_id, text="Объявление прошло модерацию"
+        chat_id=user.tg_chat_id,
+        text="Объявление прошло модерацию"
     )
 
-    #
-    # formatted_reminder_time = (advertisement.reminder_time + datetime.timedelta(hours=5)).strftime('%Y-%m-%d %H:%M:%S')
-    #
-    # await call.message.answer(
-    #     f"Уведомление для проверки актуальности отправится агенту в \n<b>{formatted_reminder_time}</b>"
-    # )
-    # await call.bot.send_message(
-    #     user.tg_chat_id,
-    #     text=advertisement_reminder_message(formatted_reminder_time)
-    # )
+    formatted_reminder_time = (advertisement.reminder_time + datetime.timedelta(hours=5)).strftime('%Y-%m-%d %H:%M:%S')
+
+    await call.message.answer(
+        f"Уведомление для проверки актуальности отправится агенту в \n<b>{formatted_reminder_time}</b>"
+    )
+    await call.bot.send_message(
+        user.tg_chat_id,
+        text=advertisement_reminder_message(formatted_reminder_time)
+    )
 
     return await call.message.delete()
 

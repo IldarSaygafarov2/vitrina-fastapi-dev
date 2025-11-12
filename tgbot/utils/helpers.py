@@ -1,8 +1,6 @@
-import json
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
-
 
 from aiogram import Bot
 from aiogram.types import InputMediaPhoto
@@ -11,12 +9,7 @@ from backend.app.config import config
 from infrastructure.database.repo.requests import RequestsRepo
 
 
-def read_json(file_path: str):
-    with open(file_path, mode='r', encoding='utf-8') as f:
-        return json.load(f)
-
-
-def filter_digits(message: str):
+def filter_digits(message: str) -> str:
     return "".join(list(filter(lambda i: i.isdigit(), message)))
 
 
@@ -53,7 +46,9 @@ async def send_message_to_rent_topic(
         price: int,
         operation_type: str,
         media_group: list[InputMediaPhoto],
-):
+) -> None:
+    """Отправляем сообщение в супер группу фильтруя по цене."""
+
     topic_data = config.super_group.make_forum_topics_data(operation_type)
     prices = list(topic_data.items())
 
@@ -100,10 +95,10 @@ async def download_advertisement_photo(bot: Bot, file_id: str, folder: Path):
 
 
 def get_reminder_time_by_operation_type(operation_type: str) -> datetime:
+    """Получаем время для проверки актуальности по указанному типу операции"""
     if operation_type == 'Покупка':
         return datetime.utcnow() + timedelta(minutes=config.reminder_config.buy_reminder_minutes)
     return datetime.utcnow() + timedelta(minutes=config.reminder_config.rent_reminder_minutes)  # для аренды
-
 
 
 async def get_advertisement_photos(advertisement_id: int, repo: 'RequestsRepo'):

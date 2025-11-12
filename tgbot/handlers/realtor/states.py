@@ -208,6 +208,11 @@ async def get_description_set_description_uz(
     try:
         current_data = await state.get_data()
         description_text = current_data.pop("description_text")
+        if len(message.text) >= 1024:
+            await state.set_state(AdvertisementCreationState.description)
+            return await message.answer(
+                "Количество символов описания превышает доступное, перепроверьте и отправьте его еще раз"
+            )
 
         description_uz_text = await description_text.answer(
             text=get_description_text(lang="uz"),
@@ -236,6 +241,12 @@ async def get_description_uz(
     try:
         data = await state.get_data()
         description_uz_text = data.pop("description_uz_text")
+
+        if len(message.text) >= 1024:
+            await state.set_state(AdvertisementCreationState.description_uz)
+            return message.answer(
+                "Количество символов для описания на узбекском превышает допустимое, перепроверьте и отправьте текст еще раз"
+            )
 
         districts_text = await description_uz_text.answer(
             text="""
