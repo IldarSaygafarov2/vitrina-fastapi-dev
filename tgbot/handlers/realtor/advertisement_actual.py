@@ -9,6 +9,7 @@ from tgbot.keyboards.admin.inline import advertisement_moderation_kb, delete_adv
 from tgbot.keyboards.user.inline import is_price_actual_kb, advertisement_actions_kb
 from tgbot.misc.user_states import AdvertisementRelevanceState
 from tgbot.templates.advertisement_creation import realtor_advertisement_completed_text
+from tgbot.templates.messages import advertisement_reminder_message
 from tgbot.utils import helpers
 from backend.app.config import config
 
@@ -94,9 +95,12 @@ async def react_to_advertisement_price_not_changed(call: CallbackQuery, repo: Re
     # получаем новое время обновления
     operation_type = advertisement.operation_type.value
     reminder_time = helpers.get_reminder_time_by_operation_type(operation_type)
+    formatted_reminder_time = (reminder_time + timedelta(hours=5)).strftime("%Y-%m-%d %H:%M:%S")
 
     channel_name, advertisement_message = helpers.get_channel_name_and_message_by_operation_type(advertisement)
     media_group = helpers.get_media_group(advertisement_photos, advertisement_message)
+
+    agent = await repo.users.get_user_by_id(advertisement.user_id)
 
     # обновляем дату проверки актуальности
     await repo.advertisements.update_advertisement(reminder_time=reminder_time, advertisement_id=advertisement_id)
@@ -125,6 +129,13 @@ async def react_to_advertisement_price_not_changed(call: CallbackQuery, repo: Re
         await call.bot.send_message(chat_id=config.tg_bot.test_main_chat_id,
                                text=f'ошибка при отправке медиа группы\n{str(e)}')
 
+    await call.message.answer(
+        f"Уведомление для проверки актуальности отправится агенту в \n<b>{formatted_reminder_time}</b>"
+    )
+    await call.bot.send_message(
+        agent.added_by,
+        text=advertisement_reminder_message(formatted_reminder_time)
+    )
 
 
 
