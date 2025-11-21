@@ -4,15 +4,16 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from backend.app.config import config
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.keyboards.admin.inline import advertisement_moderation_kb, delete_advertisement_kb
-from tgbot.keyboards.user.inline import is_price_actual_kb, advertisement_actions_kb
+from tgbot.keyboards.user.inline import is_price_actual_kb
 from tgbot.misc.user_states import AdvertisementRelevanceState
 from tgbot.templates.advertisement_creation import realtor_advertisement_completed_text
 from tgbot.templates.messages import advertisement_reminder_message
 from tgbot.utils import helpers
-from backend.app.config import config
-
+from celery_tasks.tasks import remind_agent_to_update_advertisement_extended
+from tgbot.utils.helpers import serialize_media_group
 
 router = Router()
 
@@ -90,12 +91,20 @@ async def react_to_advertisement_price_not_changed(call: CallbackQuery, repo: Re
     advertisement_id = int(call.data.split(":")[-1])
 
     advertisement = await repo.advertisements.get_advertisement_by_id(advertisement_id)
+    advertisement_message_for_remind = realtor_advertisement_completed_text(advertisement)
+
     advertisement_photos = await helpers.get_advertisement_photos(advertisement_id, repo)
 
     # получаем новое время обновления
     operation_type = advertisement.operation_type.value
     reminder_time = helpers.get_reminder_time_by_operation_type(operation_type)
     formatted_reminder_time = (reminder_time + timedelta(hours=5)).strftime("%Y-%m-%d %H:%M:%S")
+
+    # медиа группа для проверки актуальности
+    advertisement_media_group_for_remind = helpers.get_media_group(
+        advertisement_photos,
+        advertisement_message_for_remind
+    )
 
     channel_name, advertisement_message = helpers.get_channel_name_and_message_by_operation_type(advertisement)
     media_group = helpers.get_media_group(advertisement_photos, advertisement_message)
@@ -128,7 +137,17 @@ async def react_to_advertisement_price_not_changed(call: CallbackQuery, repo: Re
     except Exception as e:
         await call.bot.send_message(chat_id=config.tg_bot.test_main_chat_id,
                                text=f'ошибка при отправке медиа группы\n{str(e)}')
-
+    
+    remind_agent_to_update_advertisement_extended.apply_async(
+        args=[
+            advertisement.unique_id,
+            advertisement.id,
+            agent.tg_chat_id,
+            serialize_media_group(advertisement_media_group_for_remind)
+        ],
+        eta=reminder_time
+    )
+    
     await call.message.answer(
         f"Уведомление для проверки актуальности отправится агенту в \n<b>{formatted_reminder_time}</b>"
     )
