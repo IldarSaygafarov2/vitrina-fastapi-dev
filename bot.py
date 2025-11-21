@@ -12,6 +12,7 @@ from infrastructure.database.setup import create_engine, create_session_pool
 from tgbot.handlers import routers_list
 from tgbot.middlewares.config import ConfigMiddleware
 from tgbot.middlewares.database import DatabaseMiddleware
+
 # from tgbot.scheduler.main import scheduler
 
 

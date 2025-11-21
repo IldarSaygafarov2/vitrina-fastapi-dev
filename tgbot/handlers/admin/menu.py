@@ -37,7 +37,7 @@ from tgbot.templates.messages import (
 )
 from tgbot.templates.realtor_texts import get_realtor_info
 from tgbot.utils.helpers import get_media_group, send_message_to_rent_topic, correct_advertisement_dict, \
-    serialize_media_group
+    serialize_media_group, get_channel_name_and_message_by_operation_type
 
 router = Router()
 router.message.filter(RoleFilter(role="group_director"))
@@ -248,13 +248,7 @@ async def process_moderation_confirm(
 
     user = await repo.users.get_user_by_id(user_id=advertisement.user_id)
 
-    if advertisement.operation_type.value == "Аренда":
-        channel_name = config.tg_bot.rent_channel_name
-        advertisement_message = rent_channel_advertisement_message(advertisement)
-    else:
-        channel_name = config.tg_bot.buy_channel_name
-        advertisement_message = buy_channel_advertisement_message(advertisement)
-
+    channel_name, advertisement_message = get_channel_name_and_message_by_operation_type(advertisement)
     media_group = get_media_group(photos, advertisement_message)
 
     month = datetime.datetime.now().month
@@ -272,12 +266,6 @@ async def process_moderation_confirm(
     fill_report.delay(month=month, operation_type=advertisement.operation_type.value,
                       data=advertisement_data)
 
-    # await send_message_to_rent_topic(
-    #     bot=call.bot,
-    #     price=advertisement.price,
-    #     media_group=media_group,
-    #     operation_type=advertisement.operation_type.value
-    # )
 
     # получаем все не отправленные объявления из очереди
     not_sent_advertisements = await repo.advertisement_queue.get_all_not_sent_advertisements()

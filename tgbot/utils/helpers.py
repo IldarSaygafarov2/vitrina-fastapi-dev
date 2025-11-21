@@ -7,6 +7,8 @@ from aiogram.types import InputMediaPhoto
 
 from backend.app.config import config
 from infrastructure.database.repo.requests import RequestsRepo
+from tgbot.templates.advertisement_creation import realtor_advertisement_completed_text
+from tgbot.templates.messages import rent_channel_advertisement_message, buy_channel_advertisement_message
 
 
 def filter_digits(message: str) -> str:
@@ -104,3 +106,22 @@ def get_reminder_time_by_operation_type(operation_type: str) -> datetime:
 async def get_advertisement_photos(advertisement_id: int, repo: 'RequestsRepo'):
     photos = await repo.advertisement_images.get_advertisement_images(advertisement_id=advertisement_id)
     return [item.tg_image_hash for item in photos]
+
+
+async def collect_media_group_for_advertisement(advertisement, repo: RequestsRepo) -> list[InputMediaPhoto]:
+    """собираем медиа группу для отправки."""
+    advertisement_photos = await get_advertisement_photos(advertisement.id, repo)
+    advertisement_message = realtor_advertisement_completed_text(advertisement)
+    media_group = get_media_group(advertisement_photos, advertisement_message)
+    return media_group
+
+
+def get_channel_name_and_message_by_operation_type(advertisement) -> tuple[str, str]:
+    if advertisement.operation_type.value == "Аренда":
+        channel_name = config.tg_bot.rent_channel_name
+        advertisement_message = rent_channel_advertisement_message(advertisement)
+    else:
+        channel_name = config.tg_bot.buy_channel_name
+        advertisement_message = buy_channel_advertisement_message(advertisement)
+
+    return channel_name, advertisement_message

@@ -72,18 +72,6 @@ def property_type_kb():
     return kb.as_markup()
 
 
-def is_studio_kb(for_update: bool = False):
-    kb = InlineKeyboardBuilder()
-    kb.button(
-        text="Да",
-        callback_data="is_studio:yes" if not for_update else "update_is_studio:yes",
-    )
-    kb.button(
-        text="Нет",
-        callback_data="is_studio:no" if not for_update else "update_is_studio:no",
-    )
-    return kb.as_markup()
-
 
 def repair_type_kb(repair_types: dict):
     kb = InlineKeyboardBuilder()
@@ -156,21 +144,6 @@ def advertisement_update_kb(advertisement_id: int):
     kb.row(InlineKeyboardButton(text="На главную", callback_data="return_home"))
     return kb.as_markup()
 
-
-def multilang_field_for_update_kb(advertisement_id: int, field: str):
-    kb = InlineKeyboardBuilder()
-    kb.row(
-        InlineKeyboardButton(
-            text="Русский",
-            callback_data=f"update_{field}:ru:{advertisement_id}",
-        ),
-        InlineKeyboardButton(
-            text="Узбекский",
-            callback_data=f"update_{field}:uz:{advertisement_id}",
-        ),
-    )
-    kb.row(InlineKeyboardButton(text="На главную", callback_data="return_home"))
-    return kb.as_markup()
 
 
 def return_back_kb(callback: str):
