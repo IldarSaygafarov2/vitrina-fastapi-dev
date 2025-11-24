@@ -54,7 +54,7 @@ class AdvertisementRepo(BaseRepo):
             unique_id,
             owner_phone_number: str,
             reminder_time: datetime,
-            is_reminded: bool = False
+            is_reminded: bool = False,
     ):
         stmt = (
             insert(Advertisement)
@@ -86,7 +86,7 @@ class AdvertisementRepo(BaseRepo):
                 repair_type_uz=repair_type_uz,
                 owner_phone_number=owner_phone_number,
                 reminder_time=reminder_time,
-                is_reminded=is_reminded
+                is_reminded=is_reminded,
             )
             .options(
                 selectinload(Advertisement.category),
@@ -430,9 +430,8 @@ class AdvertisementQueueRepo(BaseRepo):
             .where(AdvertisementQueue.advertisement_id == advertisement_id)
             .returning(AdvertisementQueue)
         )
-        result = await self.session.execute(stmt)
+        await self.session.execute(stmt)
         await self.session.commit()
-        return result.scalar_one_or_none()
 
     async def get_all_not_sent_advertisements(self):
         stmt = (

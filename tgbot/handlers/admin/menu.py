@@ -235,20 +235,21 @@ async def process_moderation_confirm(
     )
 
     # если цена обновлена, то актуальную цену меняем на обновленную
-    if advertisement.updated_price:
-        advertisement = await repo.advertisements.update_advertisement(
-            advertisement_id,
-            price=advertisement.updated_price
-        )
-        await repo.advertisements.update_advertisement(advertisement.id, updated_price=0)
-
+    # if advertisement.updated_price:
+    #     advertisement = await repo.advertisements.update_advertisement(
+    #         advertisement_id,
+    #         price=advertisement.updated_price,
+    #         updated_price=0
+    #     )
 
     operation_type = advertisement.operation_type.value
     photos = [obj.tg_image_hash for obj in advertisement.images]
 
     user = await repo.users.get_user_by_id(user_id=advertisement.user_id)
 
-    channel_name, advertisement_message = get_channel_name_and_message_by_operation_type(advertisement)
+    channel_name, advertisement_message = get_channel_name_and_message_by_operation_type(
+        advertisement,
+    )
     media_group = get_media_group(photos, advertisement_message)
 
     month = datetime.datetime.now().month
@@ -267,10 +268,10 @@ async def process_moderation_confirm(
                       data=advertisement_data)
 
 
-    # получаем все не отправленные объявления из очереди
+    # получаем все неотправленные объявления из очереди
     not_sent_advertisements = await repo.advertisement_queue.get_all_not_sent_advertisements()
 
-    if not_sent_advertisements:  # если есть элементы в очереди то берем время последнего отправленного объявления
+    if not_sent_advertisements:  # если есть элементы в очереди, то берем время последнего отправленного объявления
         time_to_send = not_sent_advertisements[-1].time_to_send + datetime.timedelta(minutes=5)
         await repo.advertisement_queue.add_advertisement_to_queue(
             advertisement_id=advertisement.id, time_to_send=time_to_send
@@ -305,7 +306,7 @@ async def process_moderation_confirm(
         f"Объявление добавлено в очередь, будет отправлено в {formatted_time_to_send}"
     )
 
-    # data for remind
+    # data for reminder
     advertisement_message_for_remind = realtor_advertisement_completed_text(
         advertisement,
         lang='uz'

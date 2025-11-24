@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from backend.app.config import config
+from celery_tasks.tasks import remind_agent_to_update_advertisement_extended
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.keyboards.admin.inline import advertisement_moderation_kb, delete_advertisement_kb
 from tgbot.keyboards.user.inline import is_price_actual_kb
@@ -12,8 +13,6 @@ from tgbot.misc.user_states import AdvertisementRelevanceState
 from tgbot.templates.advertisement_creation import realtor_advertisement_completed_text
 from tgbot.templates.messages import advertisement_reminder_message
 from tgbot.utils import helpers
-from celery_tasks.tasks import remind_agent_to_update_advertisement_extended
-from tgbot.utils.helpers import serialize_media_group
 
 router = Router()
 
@@ -30,7 +29,7 @@ async def react_to_advertisement_actual(call: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("price_changed"))
-async def react_to_advertisement_price_actual(call: CallbackQuery, state: FSMContext):
+async def react_to_advertisement_price_changed(call: CallbackQuery, state: FSMContext):
     """Если цена объявления поменялась."""
     await call.answer()
 
@@ -42,6 +41,7 @@ async def react_to_advertisement_price_actual(call: CallbackQuery, state: FSMCon
 
 @router.message(AdvertisementRelevanceState.new_price)
 async def set_actual_price_for_advertisement(message: Message, repo: RequestsRepo, state: FSMContext):
+    """Добавляем новую цену объявлению."""
     state_data = await state.get_data()
     chat_id = message.chat.id
 
@@ -60,11 +60,10 @@ async def set_actual_price_for_advertisement(message: Message, repo: RequestsRep
 
     updated_advertisement = await repo.advertisements.update_advertisement(
         advertisement_id=advertisement_id,
-        updated_price=int(new_price),
+        price=int(new_price),
+        new_price=int(new_price),
         reminder_time=reminder_time
     )
-
-    # print(f'new reminder time: {formatted_reminder_time} for {operation_type=}')
 
     # подготавливаем медиа группу для отправки
     media_group = await helpers.collect_media_group_for_advertisement(updated_advertisement, repo)
@@ -85,6 +84,7 @@ async def set_actual_price_for_advertisement(message: Message, repo: RequestsRep
 
 @router.callback_query(F.data.startswith("price_not_changed"))
 async def react_to_advertisement_price_not_changed(call: CallbackQuery, repo: RequestsRepo):
+    """Отправляем сообщения во все группу и топики если цена не поменялась."""
     await call.answer()
     await call.message.delete()
 
@@ -106,7 +106,10 @@ async def react_to_advertisement_price_not_changed(call: CallbackQuery, repo: Re
         advertisement_message_for_remind
     )
 
-    channel_name, advertisement_message = helpers.get_channel_name_and_message_by_operation_type(advertisement)
+    channel_name, advertisement_message = helpers.get_channel_name_and_message_by_operation_type(
+        advertisement,
+
+    )
     media_group = helpers.get_media_group(advertisement_photos, advertisement_message)
 
     agent = await repo.users.get_user_by_id(advertisement.user_id)
@@ -143,7 +146,7 @@ async def react_to_advertisement_price_not_changed(call: CallbackQuery, repo: Re
             advertisement.unique_id,
             advertisement.id,
             agent.tg_chat_id,
-            serialize_media_group(advertisement_media_group_for_remind)
+            helpers.serialize_media_group(advertisement_media_group_for_remind)
         ],
         eta=reminder_time
     )
@@ -160,6 +163,7 @@ async def react_to_advertisement_price_not_changed(call: CallbackQuery, repo: Re
 
 @router.callback_query(F.data.startswith("not_actual"))
 async def react_to_advertisement_not_actual(call: CallbackQuery, repo: RequestsRepo):
+    """Отправляем объявление на удаление если оно не является актуальным."""
     await call.message.delete()
     await call.answer()
 
@@ -174,7 +178,7 @@ async def react_to_advertisement_not_actual(call: CallbackQuery, repo: RequestsR
 
     msg = f"""
 Агент: <i>{agent_fullname}</i> указал, что объявление: <b>{advertisement.unique_id}</b>
-не больше не актуально!
+больше не актуально!
 
 Удалить данное объявление?
 """

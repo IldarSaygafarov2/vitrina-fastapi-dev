@@ -758,6 +758,10 @@ async def get_repair_type(
             owner_phone_number=owner_phone_number,
             reminder_time=time_to_remind
         )
+        new_advertisement = await repo.advertisements.update_advertisement(
+            advertisement_id=new_advertisement.id,
+            old_price=int(price)
+        )
 
         advertisement_message = realtor_advertisement_completed_text(
             new_advertisement, lang="uz"

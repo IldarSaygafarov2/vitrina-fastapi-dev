@@ -110,7 +110,7 @@ def realtor_advertisement_completed_text(
         else ""
     )
 
-    adress_uz = (
+    address_uz = (
         f"\n<b>Адрес на узбекском:</b><i>{advertisement.address_uz}</i>"
         if lang == "uz"
         else ""
@@ -122,10 +122,10 @@ def realtor_advertisement_completed_text(
 <b>Тип объявления: </b><i>{advertisement.operation_type.value}</i>
 <b>Описание: </b><i>{advertisement.description}</i>{description_uz}
 <b>Район: </b><i>{advertisement.district.name}</i>
-<b>Адрес: </b><i>{advertisement.address}</i>{adress_uz}{owner_phone_number}
+<b>Адрес: </b><i>{advertisement.address}</i>{address_uz}{owner_phone_number}
 <b>Категория недвижимости: </b><i>{advertisement.category.name}</i>
 <b>Тип недвижимости: </b><i>{advertisement.property_type.value}</i>{creation_year}
-<b>Цена: </b><i>{advertisement.price}</i>{house_quadrature}
+<b>Цена: </b><i>{advertisement.old_price}</i>{house_quadrature}
 {rooms_from_to}
 <b>Квадратура: </b><i>{advertisement.quadrature}</i>
 <b>Этаж: </b><i>{advertisement.floor_from}</i> из <i>{advertisement.floor_to}</i>
