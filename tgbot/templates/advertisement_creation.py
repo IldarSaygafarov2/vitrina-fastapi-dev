@@ -71,8 +71,6 @@ def price_text(property_type: str):
 """
 
 
-
-
 def realtor_advertisement_completed_text(
     advertisement: "Advertisement",
     lang: str = "ru",
@@ -125,7 +123,7 @@ def realtor_advertisement_completed_text(
 <b>Адрес: </b><i>{advertisement.address}</i>{address_uz}{owner_phone_number}
 <b>Категория недвижимости: </b><i>{advertisement.category.name}</i>
 <b>Тип недвижимости: </b><i>{advertisement.property_type.value}</i>{creation_year}
-<b>Цена: </b><i>{advertisement.old_price}</i>{house_quadrature}
+<b>Цена: </b><i>{advertisement.price}</i>{house_quadrature}
 {rooms_from_to}
 <b>Квадратура: </b><i>{advertisement.quadrature}</i>
 <b>Этаж: </b><i>{advertisement.floor_from}</i> из <i>{advertisement.floor_to}</i>

@@ -10,7 +10,7 @@ from backend.core.interfaces.advertisement import AdvertisementForReportDTO
 from celery_tasks.tasks import (
     fill_report,
     remind_agent_to_update_advertisement_extended,
-    send_message_by_queue
+    send_message_by_queue,
 )
 from config.loader import load_config
 from infrastructure.database.repo.requests import RequestsRepo
@@ -28,6 +28,7 @@ from tgbot.misc.user_states import (
     AdvertisementDeletionState,
     AdvertisementModerationState,
 )
+
 # from tgbot.scheduler.main import scheduler
 from tgbot.templates.advertisement_creation import realtor_advertisement_completed_text
 from tgbot.templates.messages import (
@@ -36,8 +37,13 @@ from tgbot.templates.messages import (
     advertisement_reminder_message,
 )
 from tgbot.templates.realtor_texts import get_realtor_info
-from tgbot.utils.helpers import get_media_group, send_message_to_rent_topic, correct_advertisement_dict, \
-    serialize_media_group, get_channel_name_and_message_by_operation_type
+from tgbot.utils.helpers import (
+    get_media_group,
+    send_message_to_rent_topic,
+    correct_advertisement_dict,
+    serialize_media_group,
+    get_channel_name_and_message_by_operation_type,
+)
 
 router = Router()
 router.message.filter(RoleFilter(role="group_director"))
@@ -69,7 +75,7 @@ async def start(message: Message, repo: "RequestsRepo"):
 
 @router.callback_query(F.data == "rg_realtors")
 async def get_realtors(
-        call: CallbackQuery,
+    call: CallbackQuery,
 ):
     await call.answer()
 
@@ -81,8 +87,8 @@ async def get_realtors(
 
 @router.callback_query(F.data == "rg_realtors_all")
 async def get_all_realtors(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
+    call: CallbackQuery,
+    repo: "RequestsRepo",
 ):
     await call.answer()
 
@@ -102,9 +108,9 @@ async def get_all_realtors(
 
 @router.callback_query(F.data.startswith("get_realtor"))
 async def get_realtor(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
-        state: FSMContext,
+    call: CallbackQuery,
+    repo: "RequestsRepo",
+    state: FSMContext,
 ):
     await call.answer()
 
@@ -135,8 +141,8 @@ async def get_realtor(
 
 @router.callback_query(F.data.startswith("delete_realtor"))
 async def delete_realtor(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
+    call: CallbackQuery,
+    repo: "RequestsRepo",
 ):
     await call.answer()
     realtor_id = int(call.data.split(":")[-1])
@@ -150,8 +156,8 @@ async def delete_realtor(
 
 @router.callback_query(F.data.startswith("confirm_delete"))
 async def confirm_realtor_delete(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
+    call: CallbackQuery,
+    repo: "RequestsRepo",
 ):
     await call.answer()
     realtor_id = int(call.data.split(":")[-1])
@@ -166,9 +172,9 @@ async def confirm_realtor_delete(
 
 @router.callback_query(F.data.startswith("realtor_advertisements"))
 async def get_realtor_advertisements(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
-        state: FSMContext,
+    call: CallbackQuery,
+    repo: "RequestsRepo",
+    state: FSMContext,
 ):
     await call.answer()
 
@@ -190,8 +196,8 @@ async def get_realtor_advertisements(
 
 @router.callback_query(F.data.startswith("rg_realtor_advertisement"))
 async def get_realtor_advertisement(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
+    call: CallbackQuery,
+    repo: "RequestsRepo",
 ):
     await call.answer()
 
@@ -201,7 +207,9 @@ async def get_realtor_advertisement(
     photos = [obj.tg_image_hash for obj in advertisement.images]
 
     try:
-        media_group = get_media_group(photos, advertisement_message) if all(photos) else []
+        media_group = (
+            get_media_group(photos, advertisement_message) if all(photos) else []
+        )
 
         if media_group:
             await call.message.answer_media_group(
@@ -218,13 +226,15 @@ async def get_realtor_advertisement(
             reply_markup=delete_advertisement_kb(advertisement_id),
         )
     except Exception as e:
-        return await call.bot.send_message(chat_id=config.tg_bot.test_main_chat_id, text=str(e))
+        return await call.bot.send_message(
+            chat_id=config.tg_bot.test_main_chat_id, text=str(e)
+        )
 
 
 @router.callback_query(F.data.startswith("moderation_confirm"))
 async def process_moderation_confirm(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
+    call: CallbackQuery,
+    repo: "RequestsRepo",
 ):
     await call.answer()
 
@@ -247,32 +257,43 @@ async def process_moderation_confirm(
 
     user = await repo.users.get_user_by_id(user_id=advertisement.user_id)
 
-    channel_name, advertisement_message = get_channel_name_and_message_by_operation_type(
-        advertisement,
+    channel_name, advertisement_message = (
+        get_channel_name_and_message_by_operation_type(
+            advertisement,
+        )
     )
     media_group = get_media_group(photos, advertisement_message)
 
     month = datetime.datetime.now().month
 
-    advertisement_data = AdvertisementForReportDTO.model_validate(advertisement, from_attributes=True).model_dump()
+    advertisement_data = AdvertisementForReportDTO.model_validate(
+        advertisement, from_attributes=True
+    ).model_dump()
     advertisement_data = correct_advertisement_dict(advertisement_data)
 
-    if operation_type == 'Покупка':
+    if operation_type == "Покупка":
         await call.bot.send_media_group(
             chat_id=config.tg_bot.base_channel_name,
             media=media_group,
         )
 
-
-    fill_report.delay(month=month, operation_type=advertisement.operation_type.value,
-                      data=advertisement_data)
-
+    fill_report.delay(
+        month=month,
+        operation_type=advertisement.operation_type.value,
+        data=advertisement_data,
+    )
 
     # получаем все неотправленные объявления из очереди
-    not_sent_advertisements = await repo.advertisement_queue.get_all_not_sent_advertisements()
+    not_sent_advertisements = (
+        await repo.advertisement_queue.get_all_not_sent_advertisements()
+    )
 
-    if not_sent_advertisements:  # если есть элементы в очереди, то берем время последнего отправленного объявления
-        time_to_send = not_sent_advertisements[-1].time_to_send + datetime.timedelta(minutes=5)
+    if (
+        not_sent_advertisements
+    ):  # если есть элементы в очереди, то берем время последнего отправленного объявления
+        time_to_send = not_sent_advertisements[-1].time_to_send + datetime.timedelta(
+            minutes=5
+        )
         await repo.advertisement_queue.add_advertisement_to_queue(
             advertisement_id=advertisement.id, time_to_send=time_to_send
         )
@@ -282,7 +303,6 @@ async def process_moderation_confirm(
             advertisement_id=advertisement.id, time_to_send=time_to_send
         )
 
-
     send_message_by_queue.apply_async(
         args=[
             advertisement.id,
@@ -291,52 +311,55 @@ async def process_moderation_confirm(
             operation_type,
             channel_name,
             user.tg_chat_id,
-            call.message.chat.id
+            call.message.chat.id,
         ],
         eta=time_to_send,
     )
 
     # отправляем сообщения руководителю и агенту
-    formatted_time_to_send = (time_to_send + datetime.timedelta(hours=5)).strftime("%Y-%m-%d %H:%M:%S")
+    formatted_time_to_send = (time_to_send + datetime.timedelta(hours=5)).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
     await call.message.answer(
         f"Объявление добавлено в очередь, будет отправлено в {formatted_time_to_send}"
     )
     await call.bot.send_message(
         user.tg_chat_id,
-        f"Объявление добавлено в очередь, будет отправлено в {formatted_time_to_send}"
+        f"Объявление добавлено в очередь, будет отправлено в {formatted_time_to_send}",
     )
 
     # data for reminder
     advertisement_message_for_remind = realtor_advertisement_completed_text(
-        advertisement,
-        lang='uz'
+        advertisement, lang="uz"
     )
 
-    advertisement_media_group_for_remind = get_media_group(photos, advertisement_message_for_remind)
+    advertisement_media_group_for_remind = get_media_group(
+        photos, advertisement_message_for_remind
+    )
     remind_agent_to_update_advertisement_extended.apply_async(
         args=[
             advertisement.unique_id,
             advertisement.id,
             user.tg_chat_id,
-            serialize_media_group(advertisement_media_group_for_remind)
+            serialize_media_group(advertisement_media_group_for_remind),
         ],
-        eta=advertisement.reminder_time
+        eta=advertisement.reminder_time,
     )
 
     await call.message.edit_text("Спасибо! Объявление отправлено в канал")
     await call.bot.send_message(
-        chat_id=user.tg_chat_id,
-        text="Объявление прошло модерацию"
+        chat_id=user.tg_chat_id, text="Объявление прошло модерацию"
     )
 
-    formatted_reminder_time = (advertisement.reminder_time + datetime.timedelta(hours=5)).strftime('%Y-%m-%d %H:%M:%S')
+    formatted_reminder_time = (
+        advertisement.reminder_time + datetime.timedelta(hours=5)
+    ).strftime("%Y-%m-%d %H:%M:%S")
 
     await call.message.answer(
         f"Уведомление для проверки актуальности отправится агенту в \n<b>{formatted_reminder_time}</b>"
     )
     await call.bot.send_message(
-        user.tg_chat_id,
-        text=advertisement_reminder_message(formatted_reminder_time)
+        user.tg_chat_id, text=advertisement_reminder_message(formatted_reminder_time)
     )
 
     return await call.message.delete()
@@ -344,8 +367,8 @@ async def process_moderation_confirm(
 
 @router.callback_query(F.data.startswith("for_base_channel"))
 async def get_advertisement_for_base_channel(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
+    call: CallbackQuery,
+    repo: "RequestsRepo",
 ):
     await call.answer()
     advertisement_id = int(call.data.split(":")[-1])
@@ -356,7 +379,9 @@ async def get_advertisement_for_base_channel(
     photos = [obj.tg_image_hash for obj in advertisement.images]
 
     if advertisement.operation_type.value == "Аренда":
-        return await call.bot.send_message(user.added_by, "Пропускаем объявление, так как Аренда")
+        return await call.bot.send_message(
+            user.added_by, "Пропускаем объявление, так как Аренда"
+        )
 
     advertisement_message = buy_channel_advertisement_message(advertisement)
 
@@ -368,9 +393,13 @@ async def get_advertisement_for_base_channel(
             media=media_group,
         )
     except Exception as e:
-        await call.bot.send_message(chat_id=config.tg_bot.test_main_chat_id,
-                                    text='Ошибка при отправке в резервный канал')
-        return await call.bot.send_message(chat_id=config.tg_bot.main_chat_id, text=f'{chat_id=} {e}')
+        await call.bot.send_message(
+            chat_id=config.tg_bot.test_main_chat_id,
+            text="Ошибка при отправке в резервный канал",
+        )
+        return await call.bot.send_message(
+            chat_id=config.tg_bot.main_chat_id, text=f"{chat_id=} {e}"
+        )
 
     await call.message.edit_text("Спасибо! Объявление отправлено в резервный канал")
     await call.bot.send_message(
@@ -381,9 +410,9 @@ async def get_advertisement_for_base_channel(
 
 @router.callback_query(F.data.startswith("moderation_deny"))
 async def process_moderation_deny(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
-        state: FSMContext,
+    call: CallbackQuery,
+    repo: "RequestsRepo",
+    state: FSMContext,
 ):
     try:
         await call.answer()
@@ -403,13 +432,15 @@ async def process_moderation_deny(
             reply_markup=None,
         )
     except Exception as e:
-        await call.bot.send_message(chat_id=config.tg_bot.test_main_chat_id, text=str(e))
+        await call.bot.send_message(
+            chat_id=config.tg_bot.test_main_chat_id, text=str(e)
+        )
 
 
 @router.message(AdvertisementModerationState.message)
 async def process_moderation_deny_message(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         data = await state.get_data()
@@ -423,13 +454,15 @@ async def process_moderation_deny_message(
         await message.bot.send_message(chat_id=user.tg_chat_id, text=message.text)
         await state.clear()
     except Exception as e:
-        await message.bot.send_message(chat_id=config.tg_bot.test_main_chat_id, text=str(e))
+        await message.bot.send_message(
+            chat_id=config.tg_bot.test_main_chat_id, text=str(e)
+        )
 
 
 @router.callback_query(F.data.startswith("rg_advertisement_delete"))
 async def delete_realtor_advertisement(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
+    call: CallbackQuery,
+    repo: "RequestsRepo",
 ):
     await call.answer()
 
@@ -448,8 +481,8 @@ async def delete_realtor_advertisement(
 
 @router.callback_query(F.data.startswith("confirm_advertisement_delete"))
 async def confirm_advertisement_delete(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
+    call: CallbackQuery,
+    repo: "RequestsRepo",
 ):
     await call.answer()
     advertisement_id = int(call.data.split(":")[-1])
@@ -468,9 +501,9 @@ async def confirm_advertisement_delete(
 
 @router.callback_query(F.data.startswith("deny_advertisement_delete"))
 async def deny_advertisement_delete(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
-        state: FSMContext,
+    call: CallbackQuery,
+    repo: "RequestsRepo",
+    state: FSMContext,
 ):
     await call.answer()
 
@@ -484,9 +517,9 @@ async def deny_advertisement_delete(
 
 @router.message(AdvertisementDeletionState.message)
 async def process_advertisement_deletion_message(
-        message: Message,
-        repo: "RequestsRepo",
-        state: FSMContext,
+    message: Message,
+    repo: "RequestsRepo",
+    state: FSMContext,
 ):
     data = await state.get_data()
     advertisement = data.pop("advertisement")
