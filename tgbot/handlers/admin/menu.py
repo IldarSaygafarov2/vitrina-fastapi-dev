@@ -32,14 +32,12 @@ from tgbot.misc.user_states import (
 # from tgbot.scheduler.main import scheduler
 from tgbot.templates.advertisement_creation import realtor_advertisement_completed_text
 from tgbot.templates.messages import (
-    rent_channel_advertisement_message,
     buy_channel_advertisement_message,
     advertisement_reminder_message,
 )
 from tgbot.templates.realtor_texts import get_realtor_info
 from tgbot.utils.helpers import (
     get_media_group,
-    send_message_to_rent_topic,
     correct_advertisement_dict,
     serialize_media_group,
     get_channel_name_and_message_by_operation_type,
@@ -244,30 +242,21 @@ async def process_moderation_confirm(
         advertisement_id=advertisement_id, is_moderated=True
     )
 
-    # если цена обновлена, то актуальную цену меняем на обновленную
-    # if advertisement.updated_price:
-    #     advertisement = await repo.advertisements.update_advertisement(
-    #         advertisement_id,
-    #         price=advertisement.updated_price,
-    #         updated_price=0
-    #     )
-
     operation_type = advertisement.operation_type.value
     photos = [obj.tg_image_hash for obj in advertisement.images]
 
     user = await repo.users.get_user_by_id(user_id=advertisement.user_id)
 
     channel_name, advertisement_message = (
-        get_channel_name_and_message_by_operation_type(
-            advertisement,
-        )
+        get_channel_name_and_message_by_operation_type(advertisement)
     )
     media_group = get_media_group(photos, advertisement_message)
 
     month = datetime.datetime.now().month
 
     advertisement_data = AdvertisementForReportDTO.model_validate(
-        advertisement, from_attributes=True
+        advertisement,
+        from_attributes=True,
     ).model_dump()
     advertisement_data = correct_advertisement_dict(advertisement_data)
 
@@ -277,6 +266,7 @@ async def process_moderation_confirm(
             media=media_group,
         )
 
+    # заполняем гугл таблицу с объявлениями под определенный тип операции
     fill_report.delay(
         month=month,
         operation_type=advertisement.operation_type.value,
@@ -336,6 +326,8 @@ async def process_moderation_confirm(
     advertisement_media_group_for_remind = get_media_group(
         photos, advertisement_message_for_remind
     )
+
+    # создаем задачу для проверки актуальности по определенному времени
     remind_agent_to_update_advertisement_extended.apply_async(
         args=[
             advertisement.unique_id,
@@ -380,7 +372,8 @@ async def get_advertisement_for_base_channel(
 
     if advertisement.operation_type.value == "Аренда":
         return await call.bot.send_message(
-            user.added_by, "Пропускаем объявление, так как Аренда"
+            user.added_by,
+            "Пропускаем объявление, так как Аренда",
         )
 
     advertisement_message = buy_channel_advertisement_message(advertisement)

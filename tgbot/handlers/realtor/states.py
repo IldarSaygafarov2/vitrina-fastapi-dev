@@ -46,7 +46,12 @@ from tgbot.templates.advertisement_creation import (
     price_text,
     realtor_advertisement_completed_text,
 )
-from tgbot.utils.helpers import filter_digits, get_media_group, download_advertisement_photo
+from tgbot.utils.helpers import (
+    filter_digits,
+    get_media_group,
+    download_advertisement_photo,
+    send_error_message_to_dev,
+)
 from tgbot.utils.image_checker import get_image_hash_hex
 
 router = Router()
@@ -59,9 +64,9 @@ config = load_config()
 
 @router.callback_query(F.data.startswith("operation_type"))
 async def get_operation_type_set_category(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
-        state: FSMContext,
+    call: CallbackQuery,
+    repo: "RequestsRepo",
+    state: FSMContext,
 ):
     unique_code = await get_unique_code(repo)
 
@@ -83,9 +88,9 @@ async def get_operation_type_set_category(
 
 @router.callback_query(F.data.startswith("chosen_category"))
 async def get_category_set_photos_quantity(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
-        state: FSMContext,
+    call: CallbackQuery,
+    repo: "RequestsRepo",
+    state: FSMContext,
 ):
     await call.answer()
 
@@ -103,8 +108,8 @@ async def get_category_set_photos_quantity(
 
 @router.message(AdvertisementCreationState.preview)
 async def get_preview(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     photo_id = message.photo[-1].file_id
     await message.answer("Напишите сколько фотографий будет у объявления")
@@ -114,8 +119,8 @@ async def get_preview(
 
 @router.message(AdvertisementCreationState.photos_quantity)
 async def get_photos_quantity_set_get_photos(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     state_data = await state.get_data()
 
@@ -136,8 +141,8 @@ async def get_photos_quantity_set_get_photos(
 
 @router.message(AdvertisementCreationState.photos)
 async def get_photos_set_title(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     current_state = await state.get_data()
 
@@ -166,8 +171,8 @@ async def get_photos_set_title(
 
 @router.message(AdvertisementCreationState.title)
 async def get_title_set_description(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     state_data = await state.get_data()
 
@@ -179,8 +184,8 @@ async def get_title_set_description(
 
 @router.message(AdvertisementCreationState.title_uz)
 async def get_title_uz(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         data = await state.get_data()
@@ -192,23 +197,20 @@ async def get_title_uz(
         )
         await state.set_state(AdvertisementCreationState.description)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text="ошибка get_title_uz"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot, message="get_title_uz", exception=e
         )
 
 
 @router.message(AdvertisementCreationState.description)
 async def get_description_set_description_uz(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         current_data = await state.get_data()
         description_text = current_data.pop("description_text")
-        if len(message.text) >= 1024:
+        if len(message.text) >= 1023:
             await state.set_state(AdvertisementCreationState.description)
             return await message.answer(
                 "Количество символов описания превышает доступное, перепроверьте и отправьте его еще раз"
@@ -224,25 +226,23 @@ async def get_description_set_description_uz(
         )
         await state.set_state(AdvertisementCreationState.description_uz)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id,
-            text=f"ошибка в get_description_set_description_uz",
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_description_set_description_uz",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.description_uz)
 async def get_description_uz(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         data = await state.get_data()
         description_uz_text = data.pop("description_uz_text")
 
-        if len(message.text) >= 1024:
+        if len(message.text) >= 1023:
             await state.set_state(AdvertisementCreationState.description_uz)
             return message.answer(
                 "Количество символов для описания на узбекском превышает допустимое, перепроверьте и отправьте текст еще раз"
@@ -260,19 +260,18 @@ async def get_description_uz(
         )
         await state.set_state(AdvertisementCreationState.owner_phone_number)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_description_uz"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_description_uz",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.owner_phone_number)
 async def get_owner_phone_number(
-        message: Message,
-        repo: "RequestsRepo",
-        state: FSMContext,
+    message: Message,
+    repo: "RequestsRepo",
+    state: FSMContext,
 ):
     try:
         districts = await repo.districts.get_districts()
@@ -285,11 +284,10 @@ async def get_owner_phone_number(
         await state.update_data(owner_phone_number=message.text)
         await state.set_state(AdvertisementCreationState.district)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_owner_phone_number"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_owner_phone_number",
+            exception=e,
         )
 
 
@@ -298,9 +296,9 @@ async def get_owner_phone_number(
     AdvertisementCreationState.district,
 )
 async def get_district_set_address(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
-        state: FSMContext,
+    call: CallbackQuery,
+    repo: "RequestsRepo",
+    state: FSMContext,
 ):
     await call.answer()
 
@@ -319,19 +317,17 @@ async def get_district_set_address(
         await state.update_data(district=district, cur_message=cur_message)
         await state.set_state(AdvertisementCreationState.address)
     except Exception as e:
-        await call.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id,
-            text=f"ошибка в get_district_set_address",
-        )
-        await call.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=call.bot,
+            message="get_description_set_address",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.address)
 async def get_address(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         state_data = await state.get_data()
@@ -344,18 +340,17 @@ async def get_address(
         await state.update_data(address=message.text, cur_message=cur_message)
         await state.set_state(AdvertisementCreationState.address_uz)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_address"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_address",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.address_uz)
 async def get_address_uz(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         state_data = await state.get_data()
@@ -368,11 +363,10 @@ async def get_address_uz(
         await state.update_data(address_uz=message.text, cur_message=cur_message)
         await state.set_state(AdvertisementCreationState.property_type)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_address_uz"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_address_uz",
+            exception=e,
         )
 
 
@@ -381,8 +375,8 @@ async def get_address_uz(
     AdvertisementCreationState.property_type,
 )
 async def get_property_type(
-        call: CallbackQuery,
-        state: FSMContext,
+    call: CallbackQuery,
+    state: FSMContext,
 ):
     await call.answer()
 
@@ -411,18 +405,17 @@ async def get_property_type(
             )
             await state.set_state(AdvertisementCreationState.price)
     except Exception as e:
-        await call.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_property_type"
-        )
-        await call.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=call.bot,
+            message="get_property_type",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.creation_year)
 async def get_creation_year(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         state_data = await state.get_data()
@@ -437,18 +430,17 @@ async def get_creation_year(
         await state.update_data(creation_year=creation_year, cur_message=cur_message)
         await state.set_state(AdvertisementCreationState.price)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_creation_year"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_creation_year",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.price)
 async def get_price(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         state_data = await state.get_data()
@@ -463,18 +455,17 @@ async def get_price(
         await state.update_data(price=price, cur_message=cur_message)
         await state.set_state(AdvertisementCreationState.rooms_quantity)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_price"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_price",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.rooms_quantity)
 async def get_rooms_to(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         state_data = await state.get_data()
@@ -500,18 +491,17 @@ async def get_rooms_to(
         await state.update_data(rooms_quantity=rooms, cur_message=cur_message)
         await state.set_state(AdvertisementCreationState.quadrature)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_rooms_to"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_rooms_to",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.house_quadrature_from)
 async def get_house_quadrature_from(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         state_data = await state.get_data()
@@ -527,19 +517,17 @@ async def get_house_quadrature_from(
         )
         await state.set_state(AdvertisementCreationState.house_quadrature_to)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id,
-            text=f"ошибка в get_house_quadrature_from",
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_house_quadrature_from",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.house_quadrature_to)
 async def get_house_quadrature_to(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         state_data = await state.get_data()
@@ -555,18 +543,17 @@ async def get_house_quadrature_to(
         )
         await state.set_state(AdvertisementCreationState.quadrature)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_house_quadrature_to"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_house_quadrature_to",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.quadrature)
 async def get_quadrature(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         state_data = await state.get_data()
@@ -581,18 +568,17 @@ async def get_quadrature(
         await state.update_data(quadrature=quadrature, cur_message=cur_message)
         await state.set_state(AdvertisementCreationState.floor_from)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_quadrature"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_quadrature",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.floor_from)
 async def get_floor_from(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         state_data = await state.get_data()
@@ -607,18 +593,17 @@ async def get_floor_from(
         await state.update_data(floor_from=floor_from, cur_message=cur_message)
         await state.set_state(AdvertisementCreationState.floor_to)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_floor_from"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_floor_from",
+            exception=e,
         )
 
 
 @router.message(AdvertisementCreationState.floor_to)
 async def get_floor_to(
-        message: Message,
-        state: FSMContext,
+    message: Message,
+    state: FSMContext,
 ):
     try:
         state_data = await state.get_data()
@@ -634,11 +619,10 @@ async def get_floor_to(
         await state.update_data(floor_to=floor_to, cur_message=cur_message)
         await state.set_state(AdvertisementCreationState.repair_type)
     except Exception as e:
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка в get_floor_to"
-        )
-        await message.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=message.bot,
+            message="get_floor_to",
+            exception=e,
         )
 
 
@@ -647,9 +631,9 @@ async def get_floor_to(
     AdvertisementCreationState.repair_type,
 )
 async def get_repair_type(
-        call: CallbackQuery,
-        repo: "RequestsRepo",
-        state: FSMContext,
+    call: CallbackQuery,
+    repo: "RequestsRepo",
+    state: FSMContext,
 ):
     await call.answer()
 
@@ -663,7 +647,7 @@ async def get_repair_type(
         _, repair_type = call.data.split(":")
         state_data = await state.get_data()
 
-        unique_id = state_data.get('unique_code')
+        unique_id = state_data.get("unique_code")
 
         operation_type = state_data.get("operation_type")
         category = state_data.get("category")
@@ -719,15 +703,21 @@ async def get_repair_type(
 
         # other photos
         for photo_id in photos:
-            file_location = await download_advertisement_photo(call.bot, photo_id, advertisements_folder)
+            file_location = await download_advertisement_photo(
+                call.bot, photo_id, advertisements_folder
+            )
             files_locations.append((file_location, photo_id))
 
         owner_phone_number = state_data.get("owner_phone_number")
 
-        if operation_type == 'rent':
-            time_to_remind = datetime.utcnow() + timedelta(minutes=config.reminder_config.rent_reminder_minutes)
+        if operation_type == "rent":
+            time_to_remind = datetime.utcnow() + timedelta(
+                minutes=config.reminder_config.rent_reminder_minutes
+            )
         else:
-            time_to_remind = datetime.utcnow() + timedelta(minutes=config.reminder_config.buy_reminder_minutes)
+            time_to_remind = datetime.utcnow() + timedelta(
+                minutes=config.reminder_config.buy_reminder_minutes
+            )
 
         new_advertisement = await repo.advertisements.create_advertisement(
             unique_id=unique_id,
@@ -756,11 +746,10 @@ async def get_repair_type(
             repair_type_uz=repair_type_status_uz,
             user=user.id,
             owner_phone_number=owner_phone_number,
-            reminder_time=time_to_remind
+            reminder_time=time_to_remind,
         )
         new_advertisement = await repo.advertisements.update_advertisement(
-            advertisement_id=new_advertisement.id,
-            old_price=int(price)
+            advertisement_id=new_advertisement.id, old_price=int(price)
         )
 
         advertisement_message = realtor_advertisement_completed_text(
@@ -773,12 +762,14 @@ async def get_repair_type(
                 advertisement_id=new_advertisement.id,
                 url=str(file_location),
                 tg_image_hash=photo_id,
-                image_hash=image_hash
+                image_hash=image_hash,
             )
 
         media_group = get_media_group(photos, advertisement_message)
 
-        dev_user = await repo.users.get_user_by_chat_id(tg_chat_id=config.tg_bot.test_main_chat_id)
+        dev_user = await repo.users.get_user_by_chat_id(
+            tg_chat_id=config.tg_bot.test_main_chat_id
+        )
 
         group_directors = await repo.users.get_users_by_role(role="GROUP_DIRECTOR")
         group_directors.append(dev_user)
@@ -787,7 +778,10 @@ async def get_repair_type(
 
         for director in group_directors:
             try:
-                if director.tg_chat_id and director.tg_chat_id == new_advertisement.user.added_by:
+                if (
+                    director.tg_chat_id
+                    and director.tg_chat_id == new_advertisement.user.added_by
+                ):
                     realtor_fullname = f"{new_advertisement.user.first_name} {new_advertisement.user.lastname}"
                     await call.bot.send_message(
                         director.tg_chat_id,
@@ -814,12 +808,10 @@ async def get_repair_type(
             ),
         )
     except Exception as e:
-        await call.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"ошибка при создании объявления"
-        )
-        await call.bot.send_message(
-            chat_id=config.tg_bot.main_chat_id, text=f"{e}\n{e.__class__.__name__}"
+        await send_error_message_to_dev(
+            bot=call.bot,
+            message="при отправке объявления",
+            exception=e,
         )
 
     await call.answer(text="Операция выполнена", show_alert=True)
-
