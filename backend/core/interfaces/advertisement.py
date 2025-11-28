@@ -32,15 +32,6 @@ class AdvertisementForReportDTO(BaseModel):
     owner_phone_number: Optional[str]
 
 
-# class PaginatedAdvertisementForReportDTO(BaseModel):
-#     total: int
-#     limit: int = 20
-#     offset: int = 0
-#     pages: int
-#     current_page: int
-#     advertisements: list[AdvertisementForReportDTO]
-
-
 class PaginatedAdvertisementForReportDTO(BaseModel):
     total: int
     page: int
@@ -55,6 +46,7 @@ class AdvertisementDTO(BaseModel):
     name: str
     name_uz: Optional[str]
     price: int
+    old_price: Optional[int]
     address: str
     address_uz: Optional[str]
     rooms_quantity: Optional[int] = 0
@@ -74,6 +66,7 @@ class AdvertisementDetailDTO(BaseModel):
     name: str
     name_uz: str
     price: int
+    old_price: Optional[int]
     address: str
     address_uz: str
     rooms_quantity: Optional[int] = 0

@@ -305,11 +305,16 @@ async def process_moderation_confirm(
         ],
         eta=time_to_send,
     )
+    
+    await call.bot.send_message(
+        chat_id=user.tg_chat_id, text="Объявление прошло модерацию"
+    )
 
     # отправляем сообщения руководителю и агенту
     formatted_time_to_send = (time_to_send + datetime.timedelta(hours=5)).strftime(
         "%Y-%m-%d %H:%M:%S"
     )
+
     await call.message.answer(
         f"Объявление добавлено в очередь, будет отправлено в {formatted_time_to_send}"
     )
@@ -339,9 +344,7 @@ async def process_moderation_confirm(
     )
 
     await call.message.edit_text("Спасибо! Объявление отправлено в канал")
-    await call.bot.send_message(
-        chat_id=user.tg_chat_id, text="Объявление прошло модерацию"
-    )
+    
 
     formatted_reminder_time = (
         advertisement.reminder_time + datetime.timedelta(hours=5)

@@ -141,9 +141,9 @@ def get_channel_name_and_message_by_operation_type(advertisement) -> tuple[str, 
 
 
 async def send_error_message_to_dev(bot: Bot, message: str, exception: Exception) -> None:
-    await message.bot.send_message(
+    await bot.send_message(
         chat_id=config.tg_bot.main_chat_id, text=f"ошибка {message}"
     )
-    await message.bot.send_message(
+    await bot.send_message(
         chat_id=config.tg_bot.main_chat_id, text=f"{exception}\n{exception.__class__.__name__}"
     )

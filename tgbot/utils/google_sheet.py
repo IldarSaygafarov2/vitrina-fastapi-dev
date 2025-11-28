@@ -23,7 +23,7 @@ def create_worksheets(spread: Spreadsheet, worksheet_names: list[str] = None):
 
         spread.add_worksheet(worksheet_name, rows=1000, cols=26)
 
-    print(f'Created {len(worksheet_names)} worksheets')
+    print(f"Created {len(worksheet_names)} worksheets")
 
 
 def add_row_titles(spread: Spreadsheet, data):
@@ -38,7 +38,7 @@ def update_row_values(spread: Spreadsheet, worksheet_name: str, values: list):
     for item in values:
         item = list(item.values())
         worksheet.insert_row(item, index=all_values_count + 1)
-        print(f'Added row: {item}')
+        print(f"Added row: {item}")
         time.sleep(2)
 
 
@@ -47,7 +47,7 @@ def fill_row_with_data(spread: Spreadsheet, worksheet_name: str, data: dict):
     total_values = len(worksheet.get_all_values())
     data_values = list(data.values())
     worksheet.insert_row(data_values, index=total_values + 1)
-    print(f'Added row: {data_values}')
+    print(f"Added row: {data_values}")
 
 
 def get_sheet_values(spread: Spreadsheet, worksheet_name: str):
@@ -77,4 +77,3 @@ def get_sheet_values(spread: Spreadsheet, worksheet_name: str):
 #
 # if __name__ == '__main__':
 #     main()
-

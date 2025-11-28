@@ -1,7 +1,9 @@
 from infrastructure.database.models import Advertisement
 
 def _get_new_price_if_exists(advertisement: Advertisement):
-    return f"\n                 {advertisement.price}$" if advertisement.new_price else ""
+    if advertisement.operation_type.value == 'Аренда':
+        return f"\n                  {advertisement.price}$" if advertisement.new_price else ""
+    return f"\n           {advertisement.price}$" if advertisement.new_price else ""
 
 
 def rent_channel_advertisement_message(advertisement: Advertisement):
@@ -36,13 +38,13 @@ ID: {advertisement.unique_id}
 
 def buy_channel_advertisement_message(advertisement: Advertisement):
     house_quadrature = (
-        f"Общая площадь - {advertisement.house_quadrature_from} кв.м"
+        f"\nОбщая площадь - {advertisement.house_quadrature_from} кв.м"
         if advertisement.category.slug == "doma"
         else ""
     )
 
     new_price = _get_new_price_if_exists(advertisement)
-    old_price = f"{advertisement.old_price}" if not advertisement.new_price else f"<s>{advertisement.old_price}</s>"
+    old_price = f"{advertisement.old_price}$" if not advertisement.new_price else f"<s>{advertisement.old_price}</s>$"
 
     return f"""
 {advertisement.name}
@@ -50,8 +52,7 @@ def buy_channel_advertisement_message(advertisement: Advertisement):
 Адрес: {advertisement.district.name} {advertisement.address} 
 
 Комнат - {advertisement.rooms_quantity} / Площадь - {advertisement.quadrature} кв.м
-Этаж - {advertisement.floor_from} / Этажность - {advertisement.floor_to}
-{house_quadrature}
+Этаж - {advertisement.floor_from} / Этажность - {advertisement.floor_to}{house_quadrature}
 
 Описание - {advertisement.repair_type.value}
 {advertisement.description}
